@@ -49,7 +49,6 @@ pub mod chiseled_bookshelf;
 pub mod conduit;
 pub mod flower_pots;
 pub mod jukebox;
-pub mod lectern;
 pub mod shelf;
 pub mod signs;
 pub mod skull_block;

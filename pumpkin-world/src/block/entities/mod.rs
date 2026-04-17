@@ -49,6 +49,7 @@ pub mod furnace;
 pub mod furnace_like_block_entity;
 pub mod hopper;
 pub mod jukebox;
+pub mod lectern;
 pub mod mob_spawner;
 pub mod piston;
 pub mod shulker_box;
