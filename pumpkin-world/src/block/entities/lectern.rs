@@ -1,19 +1,76 @@
+use crate::block::entities::BlockEntity;
 use crate::inventory::{Clearable, Inventory, InventoryFuture, split_stack};
+use crossbeam::epoch::Atomic;
 use pumpkin_data::item_stack::ItemStack;
+use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_util::math::position::BlockPos;
 use std::any::Any;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use tokio::sync::Mutex;
 
 pub struct LecternBlockEntity {
     position: BlockPos,
-    book: Arc<Mutex<ItemStack>>,
     dirty: AtomicBool,
+
+    book: Arc<Mutex<ItemStack>>,
+    current_page: AtomicI32,
+    page_count: AtomicI32,
+}
+
+impl BlockEntity for LecternBlockEntity {
+    fn write_nbt<'a>(
+        &'a self,
+        nbt: &'a mut NbtCompound,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        self.write_inventory_nbt(nbt, true)
+    }
+
+    fn from_nbt(nbt: &NbtCompound, position: BlockPos) -> Self
+    where
+        Self: Sized,
+    {
+        let lectern = Self {
+            position,
+            dirty: AtomicBool::new(false),
+            book: Arc::new(Mutex::new(ItemStack::EMPTY.clone())),
+            current_page: AtomicI32::new(0),
+            page_count: AtomicI32::new(0),
+        };
+        let stack = [lectern.book.clone()];
+
+        lectern.read_data(nbt, &stack);
+        lectern
+    }
+
+    fn resource_location(&self) -> &'static str {
+        Self::ID
+    }
+
+    fn get_position(&self) -> BlockPos {
+        self.position
+    }
+
+    fn get_inventory(self: Arc<Self>) -> Option<Arc<dyn Inventory>> {
+        Some(self)
+    }
+
+    fn is_dirty(&self) -> bool {
+        self.dirty.load(Ordering::Relaxed)
+    }
+
+    fn clear_dirty(&self) {
+        self.dirty.store(false, Ordering::Relaxed);
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl LecternBlockEntity {
+    pub const ID: &'static str = "minecraft:lectern";
     pub fn on_book_removed(&self) {
         todo!()
     }
